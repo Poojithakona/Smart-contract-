@@ -4,40 +4,40 @@ module VaultModule::SimpleVault {
     use aptos_framework::aptos_coin::AptosCoin;
     use aptos_framework::account;
     use std::error;
-    // Error codes
+    
     const E_NOT_ADMIN: u64 = 1;
     const E_INSUFFICIENT_BALANCE: u64 = 2;
     const E_VAULT_EXISTS: u64 = 3;
 
-    /// Struct representing a vault that stores tokens
+
     struct Vault has store, key {
-        admin: address,           // Admin address who can manage the vault
-        total_balance: u64,       // Total tokens stored in the vault
-        vault_address: address,   // Address of the vault account
+        admin: address,          
+        total_balance: u64,       
+        vault_address: address,   
     }
 
-    /// Capability to sign transactions for the vault
+
     struct VaultSignerCapability has store, key {
         cap: account::SignerCapability,
     }
 
-    /// Function to create a new vault with the admin as the owner
+    
     public entry fun create_vault(admin: &signer) {
         let admin_address = signer::address_of(admin);
         
-        // Ensure vault doesn't already exist
+    
         assert!(!exists<Vault>(admin_address), error::already_exists(E_VAULT_EXISTS));
         
-        // Create a resource account for the vault
+        
         let (vault_signer, vault_signer_cap) = account::create_resource_account(admin, b"vault");
         let vault_address = signer::address_of(&vault_signer);
         
-        // Store the vault capability
+    
         move_to(admin, VaultSignerCapability {
             cap: vault_signer_cap,
         });
         
-        // Create and store the vault
+        
         let vault = Vault {
             admin: admin_address,
             total_balance: 0,
@@ -45,44 +45,44 @@ module VaultModule::SimpleVault {
         };
         move_to(admin, vault);
         
-        // Register the vault address for AptosCoin
+        
         coin::register<AptosCoin>(&vault_signer);
     }
 
-    /// Function to deposit tokens into the vault
     public entry fun deposit_tokens(admin: &signer, vault_address: address, amount: u64) acquires Vault {
         let admin_address = signer::address_of(admin);
         let vault = borrow_global_mut<Vault>(admin_address);
         
-        // Verify admin permission
+    
         assert!(vault.admin == admin_address, error::permission_denied(E_NOT_ADMIN));
         
-        // Transfer tokens from admin to vault
+    
         coin::transfer<AptosCoin>(admin, vault.vault_address, amount);
         
-        // Update vault balance
+    
         vault.total_balance = vault.total_balance + amount;
     }
 
-    /// Function to withdraw tokens from the vault
+
     public entry fun withdraw_tokens(admin: &signer, vault_address: address, amount: u64) acquires Vault, VaultSignerCapability {
         let admin_address = signer::address_of(admin);
         let vault = borrow_global_mut<Vault>(admin_address);
         
-        // Verify admin permission
+        
         assert!(vault.admin == admin_address, error::permission_denied(E_NOT_ADMIN));
         
-        // Check sufficient balance
+        
         assert!(vault.total_balance >= amount, error::invalid_argument(E_INSUFFICIENT_BALANCE));
         
-        // Get vault signer capability
+    
         let vault_signer_cap = &borrow_global<VaultSignerCapability>(admin_address).cap;
         let vault_signer = account::create_signer_with_capability(vault_signer_cap);
         
-        // Transfer tokens from vault to admin
+    
         coin::transfer<AptosCoin>(&vault_signer, admin_address, amount);
         
-        // Update vault balance
+        
         vault.total_balance = vault.total_balance - amount;
     }
+
 }
