@@ -1,0 +1,14 @@
+[package]
+name = "aptos_vault_smart_contract"
+version = "1.0.0"
+authors = []
+[addresses]
+VaultModule = "0x220bd9c9b5a7be3a15e77ae30a7bd5357fb87e92a223cd013dd938b2fc9f10a0"
+[dev-addresses]
+
+[dependencies.AptosFramework]
+git = "https://github.com/aptos-labs/aptos-framework.git"
+rev = "mainnet"
+subdir = "aptos-framework"
+
+[dev-dependencies]
